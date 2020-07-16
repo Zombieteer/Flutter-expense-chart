@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:Expenserati/widgets/transaction_list.dart';
 
 import 'package:Expenserati/models/transaction.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 
 void main() {
-  runApp(MaterialApp(
-    home: MyApp(),
-  ));
+  runApp(MyApp());
+  // SystemChrome.setPreferredOrientations([
+  //   DeviceOrientation.portraitUp,
+  //   DeviceOrientation.portraitDown,
+  // ]);
 }
 
 class MyApp extends StatelessWidget {
@@ -56,6 +58,8 @@ class _MyHomePageState extends State<MyHomePage> {
         id: 't2', title: 'groceries', amt: 3000.00, date: DateTime.now()),
   ];
 
+  bool _showChart = false;
+
   List<Transaction> get _recentTransaction {
     return _userTransaction.where((tx) {
       return tx.date.isAfter(
@@ -96,35 +100,86 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Personal Expenses'),
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(
-              Icons.add_circle_outline,
-              color: Colors.white,
-              size: 35,
-            ),
-            onPressed: () => _startAddNewTransaction(context),
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
+    final appBar = AppBar(
+      title: Text('Personal Expenses'),
+      actions: <Widget>[
+        IconButton(
+          icon: Icon(
+            Icons.add_circle_outline,
+            color: Colors.white,
+            size: 35,
           ),
-        ],
+          onPressed: () => _startAddNewTransaction(context),
+        ),
+      ],
+    );
+
+    final txListWidget = Container(
+      height: (MediaQuery.of(context).size.height -
+              appBar.preferredSize.height -
+              MediaQuery.of(context).padding.top) *
+          0.7,
+      child: TransactionList(
+        _userTransaction,
+        _deleteTransaction,
       ),
+    );
+    return Scaffold(
+      appBar: appBar,
       body: SingleChildScrollView(
         child: _userTransaction.length != 0
             ? Column(
                 children: <Widget>[
-                  Chart(_recentTransaction),
-                  TransactionList(_userTransaction, _deleteTransaction)
+                  if (isLandscape)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Text('Show Chart'),
+                        Switch(
+                          value: _showChart,
+                          onChanged: (val) {
+                            setState(() {
+                              _showChart = val;
+                            });
+                          },
+                        )
+                      ],
+                    ),
+                  if (!isLandscape)
+                    Container(
+                      height: (MediaQuery.of(context).size.height -
+                              appBar.preferredSize.height -
+                              MediaQuery.of(context).padding.top) *
+                          0.3,
+                      child: Chart(
+                        _recentTransaction,
+                      ),
+                    ),
+                  if (!isLandscape) txListWidget,
+                  if (isLandscape)
+                    _showChart
+                        ? Container(
+                            height: (MediaQuery.of(context).size.height -
+                                    appBar.preferredSize.height -
+                                    MediaQuery.of(context).padding.top) *
+                                0.3,
+                            child: Chart(
+                              _recentTransaction,
+                            ),
+                          )
+                        : txListWidget
                 ],
               )
             : Container(
-              width: double.infinity,
-              child: Text(
+                width: double.infinity,
+                child: Text(
                   'Add Transaction',
                   textAlign: TextAlign.center,
                 ),
-            ),
+              ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
